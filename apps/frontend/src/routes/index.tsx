@@ -78,6 +78,7 @@ function LandingPage() {
               </>
             )}
           </div>
+          <p className="mt-6 text-sm text-muted-foreground">Built by Vojtech Kuchar.</p>
         </section>
 
         <section
