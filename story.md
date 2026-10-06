@@ -2,7 +2,7 @@
 
 **Jako** čtenář Quackeru
 **chci** napsat do vyhledávacího pole slovo a vidět jen kvaky, které se k němu hodí,
-**abych** našel příspěvek z minulého týdne a nemusel листовat celým feedem.
+**abych** našel příspěvek z minulého týdne a nemusel listovat celým feedem.
 
 ## Jak to má fungovat
 
