@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { User } from '@/generated/prisma/client';
+import { Mood } from '@/modules/quack/domain/quack';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { Config } from '@/shared/config/config.service';
 import { createQuack } from './create-quack';
@@ -86,10 +87,16 @@ export const seedDatabase = async (
 
   // Listed oldest first. The feed sorts newest first, so the last entry here is
   // the one at the top of the screen.
-  const exampleQuacks: { author: User; minutesAgo: number; text: string }[] = [
+  const exampleQuacks: {
+    author: User;
+    minutesAgo: number;
+    text: string;
+    mood?: Mood;
+  }[] = [
     {
       author: pondAdmin,
       minutesAgo: 2870,
+      mood: 'angry',
       text: `Reminder: the north end of the pond is closed for reed maintenance until Thursday.
 Yes, again. No, we don't know why the contractor is a heron.`,
     },
@@ -108,6 +115,7 @@ Crust: excellent. Delivery: amateur. 6/10.`,
     {
       author: caffeinatedDuck,
       minutesAgo: 1980,
+      mood: 'silly',
       text: `just spilled coffee on my keyboard
 now every time i type "duck" it autocorrects to "quack"
 send help or more caffeine`,
@@ -144,12 +152,14 @@ The pond is not ready for this level of quality and, frankly, neither am I. 9/10
     {
       author: deepDuckThoughts,
       minutesAgo: 260,
+      mood: 'sad',
       text: `Everyone says "water off a duck's back" like it's a compliment.
 Some of us would quite like to feel things.`,
     },
     {
       author: caffeinatedDuck,
       minutesAgo: 95,
+      mood: 'happy',
       text: `me: throws one crumb into the pond
 ducks: assemble like the Avengers
 i fear i may have started something`,
@@ -164,9 +174,10 @@ Please stop tagging me.`,
 
   const now = Date.now();
 
-  for (const { author, minutesAgo, text } of exampleQuacks) {
+  for (const { author, minutesAgo, text, mood } of exampleQuacks) {
     await createQuack(prisma, {
       text,
+      mood,
       userId: author.id,
       createdAt: new Date(now - minutesAgo * MINUTE_IN_MS),
     });
