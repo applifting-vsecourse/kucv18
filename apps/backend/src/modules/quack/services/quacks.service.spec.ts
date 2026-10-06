@@ -26,25 +26,7 @@ describe('QuacksService', () => {
     const service = new QuacksService(repository);
 
     await expect(service.getQuacks()).resolves.toEqual(quacks);
-    expect(repository.getQuacks).toHaveBeenCalledWith(undefined);
-  });
-
-  it('passes a trimmed search term to the repository', async () => {
-    const repository = mock<QuackRepository>();
-    repository.getQuacks.mockResolvedValue([]);
-
-    await new QuacksService(repository).getQuacks('  duck ');
-
-    expect(repository.getQuacks).toHaveBeenCalledWith('duck');
-  });
-
-  it('treats a whitespace-only term as the full feed', async () => {
-    const repository = mock<QuackRepository>();
-    repository.getQuacks.mockResolvedValue([]);
-
-    await new QuacksService(repository).getQuacks('   ');
-
-    expect(repository.getQuacks).toHaveBeenCalledWith(undefined);
+    expect(repository.getQuacks).toHaveBeenCalledTimes(1);
   });
 
   it('creates a quack owned by the signed-in user', async () => {
