@@ -31,8 +31,19 @@ const mapPrismaQuackToDomain = (
 export class QuackRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getQuacks(): Promise<Quack[]> {
+  async getQuacks(search?: string): Promise<Quack[]> {
+    // Prisma escapes % and _ in `contains`, so they match literally.
+    const match = { contains: search, mode: 'insensitive' as const };
     const quacks = await this.prisma.quack.findMany({
+      where: search
+        ? {
+            OR: [
+              { text: match },
+              { user: { name: match } },
+              { user: { username: match } },
+            ],
+          }
+        : undefined,
       include: { user: true },
       orderBy: { createdAt: 'desc' },
     });
