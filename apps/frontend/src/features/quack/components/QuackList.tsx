@@ -11,18 +11,9 @@ type QuackListProps = {
   isLoading?: boolean
   error?: Error
   onReload?: () => void
-  search?: string
-  onClearSearch?: () => void
 }
 
-export function QuackList({
-  quacks,
-  isLoading,
-  error,
-  onReload,
-  search,
-  onClearSearch,
-}: QuackListProps) {
+export function QuackList({ quacks, isLoading, error, onReload }: QuackListProps) {
   return (
     <div className="flex flex-col">
       {isLoading && quacks.length === 0 ? (
@@ -54,24 +45,9 @@ export function QuackList({
       ) : null}
 
       {!isLoading && !error && quacks.length === 0 ? (
-        search ? (
-          <div className="flex flex-col items-center gap-3 py-8 text-center text-sm text-muted-foreground">
-            <p>No quacks match &quot;{search}&quot;.</p>
-            {onClearSearch ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onClearSearch}
-              >
-                Clear search
-              </Button>
-            ) : null}
-          </div>
-        ) : (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            No quacks yet. Post the first one.
-          </p>
-        )
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          No quacks yet. Post the first one.
+        </p>
       ) : null}
 
       {quacks.map((quack) => (
