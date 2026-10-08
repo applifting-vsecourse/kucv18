@@ -29,6 +29,25 @@ describe('QuacksService', () => {
     expect(repository.getQuacks).toHaveBeenCalledTimes(1);
   });
 
+  it('filters by text or author name, ignoring case and accents', async () => {
+    const cat = aQuack({ id: 'a', text: 'Kočka na střeše' });
+    const byAuthor = aQuack({
+      id: 'b',
+      text: 'nothing here',
+      user: { id: 'u2', name: 'Příliš Kocour', username: 'kocour' },
+    });
+    const other = aQuack({ id: 'c', text: 'quack' });
+    const repository = mock<QuackRepository>();
+    repository.getQuacks.mockResolvedValue([cat, byAuthor, other]);
+
+    const service = new QuacksService(repository);
+
+    await expect(service.getQuacks('KOCKA')).resolves.toEqual([cat]);
+    await expect(service.getQuacks('prilis')).resolves.toEqual([byAuthor]);
+    await expect(service.getQuacks('zzz')).resolves.toEqual([]);
+    await expect(service.getQuacks('  ')).resolves.toHaveLength(3);
+  });
+
   it('creates a quack owned by the signed-in user', async () => {
     const created = aQuack({ id: 'q2', text: 'hello' });
     const repository = mock<QuackRepository>();

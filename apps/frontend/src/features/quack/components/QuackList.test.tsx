@@ -39,6 +39,17 @@ describe("QuackList", () => {
     }
   })
 
+  it("shows a no-match message for an empty search result", () => {
+    render(
+      <QuackList
+        quacks={[]}
+        search="kocka"
+      />,
+    )
+
+    expect(screen.getByText("No posts found matching: 'kocka'.")).toBeInTheDocument()
+  })
+
   it("shows an error with a working reload button", async () => {
     const onReload = vi.fn()
     render(
