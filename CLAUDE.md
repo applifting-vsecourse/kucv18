@@ -26,9 +26,9 @@ Need a control that isn't in `src/components/ui/`? Add it with `pnpm dlx shadcn@
 
 The CLI puts `shadow-xs`/`shadow-sm` on inputs, textareas and cards. [`DESIGN.md`](DESIGN.md) keeps shadows for things that genuinely float — dialogs, dropdowns, toasts. Strip them.
 
-### View state lives in the URL
+### UI copy is English
 
-Search terms, filters and sorting go in the URL's search params, not in `useState`: declare them with `validateSearch` (zod) on the route and read them with `Route.useSearch()`. That way a reload keeps the view and a link can be shared. Update them with `navigate({ search, replace: true })` so typing doesn't fill the back-button history. See `routes/_ProtectedPages/quacks.tsx`.
+The app's UI is English, whatever language the request is written in. If a prompt, story or chat is in Czech (or anything else), reply in that language, but every string a user can see or hear stays English, sentence case: labels, placeholders, buttons, empty states, errors, `aria-label`s. Never translate existing copy, and when a story quotes UI text, use the English string.
 
 ### The app is already running
 
