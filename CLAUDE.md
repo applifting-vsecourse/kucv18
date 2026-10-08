@@ -26,6 +26,10 @@ Need a control that isn't in `src/components/ui/`? Add it with `pnpm dlx shadcn@
 
 The CLI puts `shadow-xs`/`shadow-sm` on inputs, textareas and cards. [`DESIGN.md`](DESIGN.md) keeps shadows for things that genuinely float — dialogs, dropdowns, toasts. Strip them.
 
+### View state lives in the URL
+
+Search terms, filters and sorting go in the URL's search params, not in `useState`: declare them with `validateSearch` (zod) on the route and read them with `Route.useSearch()`. That way a reload keeps the view and a link can be shared. Update them with `navigate({ search, replace: true })` so typing doesn't fill the back-button history. See `routes/_ProtectedPages/quacks.tsx`.
+
 ### The app is already running
 
 Assume the dev servers are up. If something is listening on the app's ports, that is this application: use it. Don't start a second instance, don't restart it, don't run `pnpm dev`.
