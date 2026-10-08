@@ -4,7 +4,8 @@ import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class ListQuacksQuery {
   @ApiPropertyOptional({
-    description: 'Case-insensitive search in quack text and author name',
+    description:
+      'Case-insensitive search in quack text, author name and username',
     maxLength: 100,
   })
   @IsOptional()

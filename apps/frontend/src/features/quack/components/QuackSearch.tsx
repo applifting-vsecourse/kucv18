@@ -53,7 +53,7 @@ export function QuackSearch({ value, onChange, className }: QuackSearchProps) {
           type="text"
           value={text}
           maxLength={SEARCH_MAX_LENGTH}
-          placeholder="Text or author name"
+          placeholder="Text, name or username"
           className="pr-10"
           onChange={(event) => handleInput(event.target.value)}
         />
