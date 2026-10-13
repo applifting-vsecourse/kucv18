@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { MOODS } from "@/features/quack/moods"
+import { MOODS } from "@/lib/moods"
 
 // Per the Applifting frontend playbook: validate every server payload with zod
 // and infer types from the schema rather than auto-generating them.

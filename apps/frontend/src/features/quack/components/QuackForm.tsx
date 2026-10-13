@@ -21,18 +21,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { MOOD_LABELS, MOODS, NO_MOOD, type Mood } from "@/lib/moods"
 import { cn } from "@/lib/utils"
 
 import { useAddQuack } from "@/features/quack/hooks/useAddQuack"
-import { MOOD_LABELS, MOODS } from "@/features/quack/moods"
 
 // Mirrors the server-side DTO (MaxLength(280)) so the user is told before
 // the request is made — the server still validates independently.
 const MAX_LENGTH = 280
-
-// Radix Select can't hold an empty value, so "no mood" gets a sentinel that is
-// mapped to "leave it out" on submit.
-const NO_MOOD = "none"
 
 const schema = z.object({
   text: z
@@ -45,13 +41,18 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-type QuackFormProps = { className?: string }
+type QuackFormProps = {
+  className?: string
+  // The mood a new quack starts with (chosen in Settings).
+  defaultMood?: Mood | null
+}
 
-export function QuackForm({ className }: QuackFormProps) {
+export function QuackForm({ className, defaultMood }: QuackFormProps) {
   const addQuack = useAddQuack()
+  const emptyValues: FormValues = { text: "", mood: defaultMood ?? NO_MOOD }
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { text: "", mood: NO_MOOD },
+    defaultValues: emptyValues,
   })
 
   const text = useWatch({ control: form.control, name: "text" })
@@ -60,7 +61,7 @@ export function QuackForm({ className }: QuackFormProps) {
   const handleSubmit = (values: FormValues) => {
     addQuack.mutate(
       { text: values.text, mood: values.mood === NO_MOOD ? undefined : values.mood },
-      { onSuccess: () => form.reset() },
+      { onSuccess: () => form.reset(emptyValues) },
     )
   }
 
