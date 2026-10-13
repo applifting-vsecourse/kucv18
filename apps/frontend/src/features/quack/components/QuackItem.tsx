@@ -1,10 +1,10 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { formatDate } from "@/lib/date"
+import { MOOD_LABELS } from "@/lib/moods"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
 import { UsersName } from "@/features/quack/components/UsersName"
 import { UsersUserName } from "@/features/quack/components/UsersUserName"
-import { MOOD_LABELS } from "@/features/quack/moods"
 
 type QuackItemProps = { quack: Quack }
 

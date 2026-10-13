@@ -4,6 +4,7 @@ import { z } from "zod"
 
 import { Seo } from "@/components/Seo"
 
+import { useSession } from "@/features/auth/hooks/useSession"
 import { quacksQueryOptions } from "@/features/quack/api/quacksQueryOptions"
 import { QuackForm } from "@/features/quack/components/QuackForm"
 import { QuackList } from "@/features/quack/components/QuackList"
@@ -21,6 +22,7 @@ function QuacksPage() {
   const search = Route.useSearch().q ?? ""
   const navigate = useNavigate({ from: Route.fullPath })
   const quacksQuery = useQuery(quacksQueryOptions(search))
+  const { user } = useSession()
 
   return (
     <>
@@ -28,7 +30,10 @@ function QuacksPage() {
       <section className="mx-auto w-full max-w-2xl px-4 py-8">
         <h1 className="mb-4 text-2xl font-semibold tracking-tight">Quacks</h1>
 
-        <QuackForm className="mb-4" />
+        <QuackForm
+          className="mb-4"
+          defaultMood={user?.defaultMood}
+        />
 
         <QuackSearch
           value={search}

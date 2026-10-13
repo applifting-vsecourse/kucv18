@@ -13,6 +13,10 @@ export const betterAuthCoreConfig: BetterAuthOptions = {
         defaultValue: 'user',
         input: false,
       },
+      // Edited through PATCH /api/me, which validates them; they are listed here
+      // so they come back on the session.
+      bio: { type: 'string', required: false, input: false },
+      defaultMood: { type: 'string', required: false, input: false },
     },
   },
   plugins: [openAPI(), username()],
