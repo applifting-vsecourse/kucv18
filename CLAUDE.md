@@ -30,6 +30,10 @@ The CLI puts `shadow-xs`/`shadow-sm` on inputs, textareas and cards. [`DESIGN.md
 
 The app's UI is English, whatever language the request is written in. If a prompt, story or chat is in Czech (or anything else), reply in that language, but every string a user can see or hear stays English, sentence case: labels, placeholders, buttons, empty states, errors, `aria-label`s. Never translate existing copy, and when a story quotes UI text, use the English string.
 
+### Story and plan are in Czech
+
+`story.md` and `plan.md` are written in Czech. Keep them in Czech when creating or updating them. This applies to the documents only: code, identifiers, commit messages and every string a user sees in the UI stay English (see above).
+
 ### The app is already running
 
 Assume the dev servers are up. If something is listening on the app's ports, that is this application: use it. Don't start a second instance, don't restart it, don't run `pnpm dev`.
