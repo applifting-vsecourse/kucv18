@@ -1,7 +1,7 @@
 import { Mood, Quack } from '@/modules/quack/domain/quack';
 import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 // Lower-case and strip diacritics so "kocka" matches "Kočka".
 const normalize = (value: string): string =>
@@ -14,8 +14,8 @@ const normalize = (value: string): string =>
 export class QuacksService {
   constructor(private readonly quackRepository: QuackRepository) {}
 
-  async getQuacks(search?: string): Promise<Quack[]> {
-    const quacks = await this.quackRepository.getQuacks();
+  async getQuacks(user: Identity, search?: string): Promise<Quack[]> {
+    const quacks = await this.quackRepository.getQuacks(user.id);
     const needle = normalize((search ?? '').trim());
     if (!needle) return quacks;
     // Done here rather than in SQL: Postgres has no accent-insensitive
@@ -29,11 +29,16 @@ export class QuacksService {
 
   async createQuack(
     user: Identity,
-    quackData: { text: string; mood?: Mood },
+    quackData: { text: string; mood?: Mood; pollOptions?: string[] },
   ): Promise<Quack> {
+    const options = quackData.pollOptions;
+    if (options && new Set(options.map(normalize)).size !== options.length) {
+      throw new BadRequestException('Poll options must be different');
+    }
     return this.quackRepository.createQuack({
       text: quackData.text,
       mood: quackData.mood,
+      pollOptions: options,
       // the author is taken from the session, never from the request body
       userId: user.id,
     });

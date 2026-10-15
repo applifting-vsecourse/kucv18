@@ -3,8 +3,11 @@
 import { Quack } from '@/modules/quack/domain/quack';
 import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
+import { BadRequestException } from '@nestjs/common';
 import { mock } from 'jest-mock-extended';
 import { QuacksService } from './quacks.service';
+
+const user = { id: 'u1' } as Identity;
 
 const aQuack = (overrides: Partial<Quack> = {}): Quack => ({
   id: 'q1',
@@ -25,8 +28,8 @@ describe('QuacksService', () => {
 
     const service = new QuacksService(repository);
 
-    await expect(service.getQuacks()).resolves.toEqual(quacks);
-    expect(repository.getQuacks).toHaveBeenCalledTimes(1);
+    await expect(service.getQuacks(user)).resolves.toEqual(quacks);
+    expect(repository.getQuacks).toHaveBeenCalledWith('u1');
   });
 
   it('filters by text or author name, ignoring case and accents', async () => {
@@ -42,10 +45,12 @@ describe('QuacksService', () => {
 
     const service = new QuacksService(repository);
 
-    await expect(service.getQuacks('KOCKA')).resolves.toEqual([cat]);
-    await expect(service.getQuacks('prilis')).resolves.toEqual([byAuthor]);
-    await expect(service.getQuacks('zzz')).resolves.toEqual([]);
-    await expect(service.getQuacks('  ')).resolves.toHaveLength(3);
+    await expect(service.getQuacks(user, 'KOCKA')).resolves.toEqual([cat]);
+    await expect(service.getQuacks(user, 'prilis')).resolves.toEqual([
+      byAuthor,
+    ]);
+    await expect(service.getQuacks(user, 'zzz')).resolves.toEqual([]);
+    await expect(service.getQuacks(user, '  ')).resolves.toHaveLength(3);
   });
 
   it('creates a quack owned by the signed-in user', async () => {
@@ -54,8 +59,6 @@ describe('QuacksService', () => {
     repository.createQuack.mockResolvedValue(created);
 
     const service = new QuacksService(repository);
-    const user = { id: 'u1' } as Identity;
-
     await expect(service.createQuack(user, { text: 'hello' })).resolves.toEqual(
       created,
     );
@@ -64,6 +67,7 @@ describe('QuacksService', () => {
       text: 'hello',
       mood: undefined,
       userId: 'u1',
+      pollOptions: undefined,
     });
   });
 
@@ -73,8 +77,6 @@ describe('QuacksService', () => {
     repository.createQuack.mockResolvedValue(created);
 
     const service = new QuacksService(repository);
-    const user = { id: 'u1' } as Identity;
-
     await expect(
       service.createQuack(user, { text: 'grr', mood: 'angry' }),
     ).resolves.toEqual(created);
@@ -82,6 +84,38 @@ describe('QuacksService', () => {
       text: 'grr',
       mood: 'angry',
       userId: 'u1',
+      pollOptions: undefined,
     });
+  });
+
+  it('creates a poll quack with the options in order', async () => {
+    const repository = mock<QuackRepository>();
+    repository.createQuack.mockResolvedValue(aQuack());
+
+    const service = new QuacksService(repository);
+
+    await service.createQuack(user, {
+      text: 'Lunch?',
+      pollOptions: ['Pizza', 'Ramen'],
+    });
+    expect(repository.createQuack).toHaveBeenCalledWith({
+      text: 'Lunch?',
+      mood: undefined,
+      userId: 'u1',
+      pollOptions: ['Pizza', 'Ramen'],
+    });
+  });
+
+  it('rejects poll options that differ only by case or accents', async () => {
+    const repository = mock<QuackRepository>();
+    const service = new QuacksService(repository);
+
+    await expect(
+      service.createQuack(user, {
+        text: 'Lunch?',
+        pollOptions: ['Káva', 'kava'],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.createQuack).not.toHaveBeenCalled();
   });
 });
