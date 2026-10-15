@@ -127,7 +127,7 @@ describe("QuackPoll", () => {
     await waitFor(() => expect(screen.getAllByText("2 · 50%")).toHaveLength(2))
     expect(screen.getByText("4 votes")).toBeInTheDocument()
     // TanStack passes an extra context argument, so only the payload is compared.
-    expect(vi.mocked(votePoll).mock.calls[0][0]).toEqual({ pollId: "p1", optionId: "o2" })
+    expect(vi.mocked(votePoll).mock.calls[0]?.[0]).toEqual({ pollId: "p1", optionId: "o2" })
   })
 
   it("sends nothing when clicking the option already chosen", async () => {
