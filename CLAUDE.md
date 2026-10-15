@@ -26,9 +26,15 @@ Need a control that isn't in `src/components/ui/`? Add it with `pnpm dlx shadcn@
 
 The CLI puts `shadow-xs`/`shadow-sm` on inputs, textareas and cards. [`DESIGN.md`](DESIGN.md) keeps shadows for things that genuinely float — dialogs, dropdowns, toasts. Strip them.
 
+After `shadcn add`, read the generated file and `git diff package.json` before committing. The CLI has written `import { cn } from "cn"` (an unrelated npm package, which it also added to `package.json`) instead of `@/lib/utils`. Fix the import and revert the dependency.
+
 ### UI copy is English
 
 The app's UI is English, whatever language the request is written in. If a prompt, story or chat is in Czech (or anything else), reply in that language, but every string a user can see or hear stays English, sentence case: labels, placeholders, buttons, empty states, errors, `aria-label`s. Never translate existing copy, and when a story quotes UI text, use the English string.
+
+### Story and plan are in Czech
+
+`story.md` and `plan.md` are written in Czech. Keep them in Czech when creating or updating them. This applies to the documents only: code, identifiers, commit messages and every string a user sees in the UI stay English (see above).
 
 ### The app is already running
 

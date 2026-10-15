@@ -3,6 +3,7 @@ import { formatDate } from "@/lib/date"
 import { MOOD_LABELS } from "@/lib/moods"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
+import { QuackPoll } from "@/features/quack/components/QuackPoll"
 import { UsersName } from "@/features/quack/components/UsersName"
 import { UsersUserName } from "@/features/quack/components/UsersUserName"
 
@@ -39,6 +40,7 @@ export function QuackItem({ quack }: QuackItemProps) {
           ) : null}
         </div>
         <p className="text-sm break-words whitespace-pre-line">{quack.text}</p>
+        {quack.poll ? <QuackPoll poll={quack.poll} /> : null}
       </div>
     </article>
   )
