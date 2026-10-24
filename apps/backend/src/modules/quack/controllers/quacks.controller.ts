@@ -50,7 +50,11 @@ export class QuacksController {
     @User() user: Identity,
     @Query() query: ListQuacksQuery,
   ): Promise<QuackResponseDto[]> {
-    const quacks = await this.quacksService.getQuacks(user, query.q);
+    const quacks = await this.quacksService.getQuacks(
+      user,
+      query.q,
+      query.mine,
+    );
     return quacks.map(QuackResponseDto.fromDomain);
   }
 

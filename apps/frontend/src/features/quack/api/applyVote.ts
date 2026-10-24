@@ -16,6 +16,14 @@ export function applyVoteToPoll(poll: Poll, optionId: string): Poll {
   }
 }
 
+// Puts one poll back to how it was, leaving every other poll as it is now —
+// so a failed vote doesn't erase an optimistic vote made in another poll.
+export function restorePoll(current: Quack[], previous: Quack[], pollId: string): Quack[] {
+  const before = previous.find((quack) => quack.poll?.id === pollId)?.poll
+  if (!before) return current
+  return current.map((quack) => (quack.poll?.id === pollId ? { ...quack, poll: before } : quack))
+}
+
 export function applyVote(quacks: Quack[], pollId: string, optionId: string): Quack[] {
   return quacks.map((quack) =>
     quack.poll?.id === pollId ? { ...quack, poll: applyVoteToPoll(quack.poll, optionId) } : quack,

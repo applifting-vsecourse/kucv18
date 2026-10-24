@@ -19,8 +19,13 @@ const normalize = (value: string): string =>
 export class QuacksService {
   constructor(private readonly quackRepository: QuackRepository) {}
 
-  async getQuacks(user: Identity, search?: string): Promise<Quack[]> {
-    const quacks = await this.quackRepository.getQuacks(user.id);
+  async getQuacks(
+    user: Identity,
+    search?: string,
+    onlyMine = false,
+  ): Promise<Quack[]> {
+    // "mine" is resolved from the session, never from a user id in the request
+    const quacks = await this.quackRepository.getQuacks(user.id, onlyMine);
     const needle = normalize((search ?? '').trim());
     if (!needle) return quacks;
     // Done here rather than in SQL: Postgres has no accent-insensitive

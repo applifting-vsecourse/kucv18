@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { applyVote } from "@/features/quack/api/applyVote"
+import { applyVote, restorePoll } from "@/features/quack/api/applyVote"
 import { quackKeys } from "@/features/quack/api/quackKeys"
 import type { Quack } from "@/features/quack/api/quackSchemas"
 import { votePoll } from "@/features/quack/api/votePoll"
@@ -23,9 +23,12 @@ export function useVote() {
       )
       return { previous }
     },
-    onError: (_error, _vars, context) => {
+    onError: (_error, { pollId }, context) => {
       for (const [key, data] of context?.previous ?? []) {
-        queryClient.setQueryData(key, data)
+        if (!data) continue
+        queryClient.setQueryData<Quack[]>(key, (current) =>
+          current ? restorePoll(current, data, pollId) : current,
+        )
       }
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: quackKeys.lists() }),

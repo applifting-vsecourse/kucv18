@@ -25,11 +25,8 @@ function QuacksPage() {
   const search = Route.useSearch().q ?? ""
   const view = Route.useSearch().view ?? "all"
   const navigate = useNavigate({ from: Route.fullPath })
-  const quacksQuery = useQuery(quacksQueryOptions(search))
+  const quacksQuery = useQuery(quacksQueryOptions(search, view === "mine"))
   const { user } = useSession()
-  const quacks = (quacksQuery.data ?? []).filter(
-    (quack) => view === "all" || quack.userId === user?.id,
-  )
 
   return (
     <>
@@ -68,7 +65,7 @@ function QuacksPage() {
 
         <QuackList
           search={search}
-          quacks={quacks}
+          quacks={quacksQuery.data ?? []}
           currentUserId={user?.id}
           isMineOnly={view === "mine"}
           onWriteFirst={() => document.querySelector<HTMLTextAreaElement>("textarea")?.focus()}

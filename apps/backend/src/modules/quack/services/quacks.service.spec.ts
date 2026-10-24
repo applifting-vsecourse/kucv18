@@ -33,7 +33,16 @@ describe('QuacksService', () => {
     const service = new QuacksService(repository);
 
     await expect(service.getQuacks(user)).resolves.toEqual(quacks);
-    expect(repository.getQuacks).toHaveBeenCalledWith('u1');
+    expect(repository.getQuacks).toHaveBeenCalledWith('u1', false);
+  });
+
+  it("asks the repository for only the signed-in user's quacks", async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuacks.mockResolvedValue([]);
+
+    await new QuacksService(repository).getQuacks(user, undefined, true);
+
+    expect(repository.getQuacks).toHaveBeenCalledWith('u1', true);
   });
 
   it('filters by text or author name, ignoring case and accents', async () => {
