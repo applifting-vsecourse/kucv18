@@ -11,10 +11,24 @@ type QuackListProps = {
   isLoading?: boolean
   error?: Error
   search?: string
+  // Quacks by this user get a Delete action.
+  currentUserId?: string
+  // Set when the list is filtered to the current user's quacks.
+  isMineOnly?: boolean
+  onWriteFirst?: () => void
   onReload?: () => void
 }
 
-export function QuackList({ quacks, isLoading, error, search, onReload }: QuackListProps) {
+export function QuackList({
+  quacks,
+  isLoading,
+  error,
+  search,
+  currentUserId,
+  isMineOnly,
+  onWriteFirst,
+  onReload,
+}: QuackListProps) {
   return (
     <div className="flex flex-col">
       {isLoading && quacks.length === 0 ? (
@@ -46,15 +60,31 @@ export function QuackList({ quacks, isLoading, error, search, onReload }: QuackL
       ) : null}
 
       {!isLoading && !error && quacks.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          {search ? `No posts found matching: '${search}'.` : "No quacks yet. Post the first one."}
-        </p>
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            {search
+              ? `No posts found matching: '${search}'.`
+              : isMineOnly
+                ? "You haven't posted any quacks yet."
+                : "No quacks yet. Post the first one."}
+          </p>
+          {isMineOnly && !search && onWriteFirst ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onWriteFirst}
+            >
+              Write your first quack
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {quacks.map((quack) => (
         <QuackItem
           key={quack.id}
           quack={quack}
+          canDelete={quack.userId === currentUserId}
         />
       ))}
     </div>

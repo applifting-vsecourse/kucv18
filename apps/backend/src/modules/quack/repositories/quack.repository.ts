@@ -79,4 +79,14 @@ export class QuackRepository {
     });
     return mapPrismaQuackToDomain(quack);
   }
+
+  async findQuackById(id: string): Promise<Quack | null> {
+    const quack = await this.prisma.quack.findUnique({ where: { id } });
+    return quack ? mapPrismaQuackToDomain(quack) : null;
+  }
+
+  // The poll, its options and votes go with the quack (onDelete: Cascade).
+  async deleteQuack(id: string): Promise<void> {
+    await this.prisma.quack.deleteMany({ where: { id } });
+  }
 }

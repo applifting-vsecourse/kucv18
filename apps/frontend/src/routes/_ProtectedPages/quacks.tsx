@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { z } from "zod"
 
 import { Seo } from "@/components/Seo"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { quacksQueryOptions } from "@/features/quack/api/quacksQueryOptions"
@@ -13,6 +14,8 @@ import { QuackSearch, SEARCH_MAX_LENGTH } from "@/features/quack/components/Quac
 export const Route = createFileRoute("/_ProtectedPages/quacks")({
   validateSearch: z.object({
     q: z.string().trim().max(SEARCH_MAX_LENGTH).optional().catch(undefined),
+    // "mine" is resolved against the session, so no user id travels in the URL.
+    view: z.enum(["all", "mine"]).optional().catch(undefined),
   }),
   component: QuacksPage,
 })
@@ -20,9 +23,13 @@ export const Route = createFileRoute("/_ProtectedPages/quacks")({
 function QuacksPage() {
   // The search term lives in the URL (?q=) so it survives reload and can be shared.
   const search = Route.useSearch().q ?? ""
+  const view = Route.useSearch().view ?? "all"
   const navigate = useNavigate({ from: Route.fullPath })
   const quacksQuery = useQuery(quacksQueryOptions(search))
   const { user } = useSession()
+  const quacks = (quacksQuery.data ?? []).filter(
+    (quack) => view === "all" || quack.userId === user?.id,
+  )
 
   return (
     <>
@@ -37,13 +44,34 @@ function QuacksPage() {
 
         <QuackSearch
           value={search}
-          onSearch={(q) => void navigate({ search: { q: q || undefined }, replace: true })}
-          className="mb-6"
+          onSearch={(q) =>
+            void navigate({ search: (prev) => ({ ...prev, q: q || undefined }), replace: true })
+          }
+          className="mb-4"
         />
+
+        <Tabs
+          value={view}
+          onValueChange={(next) =>
+            void navigate({
+              search: (prev) => ({ ...prev, view: next === "mine" ? "mine" : undefined }),
+              replace: true,
+            })
+          }
+          className="mb-4"
+        >
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="mine">Mine</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         <QuackList
           search={search}
-          quacks={quacksQuery.data ?? []}
+          quacks={quacks}
+          currentUserId={user?.id}
+          isMineOnly={view === "mine"}
+          onWriteFirst={() => document.querySelector<HTMLTextAreaElement>("textarea")?.focus()}
           isLoading={quacksQuery.isLoading}
           error={quacksQuery.error ?? undefined}
           // Only the error state offers a retry — posting invalidates the list,

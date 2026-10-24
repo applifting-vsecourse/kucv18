@@ -1,7 +1,12 @@
 import { Mood, Quack } from '@/modules/quack/domain/quack';
 import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 // Lower-case and strip diacritics so "kocka" matches "Kočka".
 const normalize = (value: string): string =>
@@ -42,5 +47,16 @@ export class QuacksService {
       // the author is taken from the session, never from the request body
       userId: user.id,
     });
+  }
+
+  async deleteQuack(user: Identity, quackId: string): Promise<void> {
+    const quack = await this.quackRepository.findQuackById(quackId);
+    if (!quack) throw new NotFoundException('Quack not found');
+    // The ownership check lives here, not in the UI: hiding the button is
+    // only a convenience.
+    if (quack.userId !== user.id) {
+      throw new ForbiddenException('You can only delete your own quacks');
+    }
+    await this.quackRepository.deleteQuack(quackId);
   }
 }
