@@ -22,6 +22,8 @@ export function useSignUp() {
         username: input.username,
         email: input.email,
         password: input.password,
+        // Without it the verification link lands on a backend route that has no page.
+        callbackURL: `${window.location.origin}/quacks`,
       })
       if (error) throw new Error(error.message ?? "Sign up failed")
     },
