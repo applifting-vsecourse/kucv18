@@ -1,35 +1,47 @@
-# Story: ankety
+# Moderace: admin maže cizí quacky
 
-## Problém
+## User story
 
-Lidé se v quacích ptají ("kam půjdeme na oběd?") a odpovědi pak počítají ručně. Někdo se vždycky splete a quack zapadne pod odpověďmi.
+Jako moderátor (admin) chci smazat jakýkoli quack, abych mohl odstranit nevhodné příspěvky, které jejich autor nesmaže.
 
-## Co stavíme
+## Kontext
 
-Quack může obsahovat anketu: několik odpovědí na výběr. Ostatní vyberou jednu a u každé odpovědi se zobrazí, kolik lidí ji zvolilo. Nejdřív chceme zjistit, jestli to lidé budou používat, proto je rozsah záměrně malý.
+Někdo začal přidávat nechutné quacky a jejich autor je nesmaže. Potřebujeme moderátora, který smaže cokoli. Nic víc. Moderátor je uživatel s rolí `admin`, ta už existuje. Účet je ze seedu (`admin@example.com`).
 
-## Rozhodnutí (všechna uzavřená)
+## Akceptační kritéria
 
-| Téma                     | Rozhodnutí                                                                                                                                                       |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Kde anketa žije          | Anketa je druh quacku. Zobrazuje se v běžném quack feedu. Žádná samostatná stránka anket.                                                                        |
-| Vytváření                | Formulář quacku má přepínač "Add a poll", který odhalí pole pro odpovědi. Text quacku je otázka. Nálada zůstává volitelná.                                       |
-| Odpovědi                 | 2 až 6 odpovědí, každá max 80 znaků, bez duplicit (bez ohledu na velikost písmen, po oříznutí mezer), žádná prázdná. Otázka je text quacku (max 280, jako dnes). |
-| Hlasování                | Jeden hlas na osobu a anketu, vynucený databází. Hlasovat může každý přihlášený, i autor.                                                                        |
-| Změna hlasu              | Povolena: vybereš jinou odpověď a hlas se přesune. Stáhnout hlas bez nové volby nejde. Kliknutí na aktuální odpověď nic neudělá.                                 |
-| Viditelnost              | Počty a procenta jsou vidět vždy, i před hlasováním. Hlasy jsou anonymní: nikdo nevidí, kdo pro co hlasoval. Svou odpověď vidíš označenou.                       |
-| Úpravy, mazání, uzavření | Žádné. Anketu nelze po vytvoření upravit, smazat ani uzavřít. Nemazání zároveň chrání už odevzdané hlasy. (Lze doplnit později, pokud to lidé budou používat.)   |
-| Pocit z použití          | Hlas se projeví okamžitě (optimisticky). Pokud požadavek selže, hlas se vrátí zpět a je vidět chybová zpráva.                                                    |
-| Aktuálnost               | Počty se znovu načtou při návratu na záložku a po každém hlasu. Žádný polling, žádné websockety.                                                                 |
-| Vyhledávání              | Stávající vyhledávání quacků funguje dál. Hledá v textu otázky (text quacku) a jménu autora. V odpovědích se nehledá.                                            |
-| Jazyk                    | Veškerý text v UI je anglicky, sentence case. Tyto dokumenty (story, plan) jsou česky.                                                                           |
+Mazání
 
-## Akceptace (ze zadání)
+- Admin vidí akci Delete u každého quacku, ne jen u svých.
+- Běžný uživatel dál vidí Delete jen u svých quacků.
+- Admin mazání potvrzuje stejným dialogem jako autor. Text se nemění.
+- Po smazání quack zmizí z feedu (All i Mine).
 
-- Dva účty v produkci: jeden se zeptá, druhý hlasuje, první po obnovení stránky vidí jeho hlas.
-- Změna hlasu změní počty pro všechny.
-- Formuláře splňují kontroly z DESIGN.md.
+Server
+
+- Smazat quack smí jeho autor nebo admin. Kdokoli jiný dostane 403, a to i při přímém volání API.
+- Odhlášený dostane 401, neexistující quack 404.
+- Roli bere server ze session. Ne z URL ani z těla požadavku.
+- Kontrola je na jednom místě ve službě: `isOwner || isAdmin`.
+
+Mine
+
+- Záložka Mine se pro admina nemění: ukazuje jen jeho vlastní quacky.
+
+## Rozhodnutí z upřesňování
+
+- Dialog pro admina je stejný jako pro autora.
+- Záložka Mine zůstává beze změny.
+- Role `moderator` a stránka Stats nejsou součástí tohoto úkolu.
 
 ## Mimo rozsah
 
-Výběr více odpovědí, stažení hlasu, úprava/smazání/uzavření, termíny, jména hlasujících, živé push aktualizace, ankety mimo quack feed.
+- Samostatná role `moderator`, log moderačních akcí, vrácení smazaného (undo).
+- Okamžité zmizení quacku ostatním divákům (uvidí změnu při příštím načtení).
+
+## Jak to ověřit
+
+1. Autor smaže svůj quack. Funguje.
+2. Jiný běžný uživatel nevidí Delete u cizího quacku. API vrací 403.
+3. `admin@example.com` vidí Delete u každého quacku a cizí quack smaže.
+4. Odhlášený: `DELETE` vrací 401.

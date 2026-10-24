@@ -11,8 +11,9 @@ type QuackListProps = {
   isLoading?: boolean
   error?: Error
   search?: string
-  // Quacks by this user get a Delete action.
-  currentUserId?: string
+  // Decides which quacks show Delete. Hiding the button is only a convenience;
+  // the server decides who may delete.
+  canDelete?: (quack: Quack) => boolean
   // Set when the list is filtered to the current user's quacks.
   isMineOnly?: boolean
   onWriteFirst?: () => void
@@ -24,7 +25,7 @@ export function QuackList({
   isLoading,
   error,
   search,
-  currentUserId,
+  canDelete,
   isMineOnly,
   onWriteFirst,
   onReload,
@@ -84,7 +85,7 @@ export function QuackList({
         <QuackItem
           key={quack.id}
           quack={quack}
-          canDelete={quack.userId === currentUserId}
+          canDelete={canDelete?.(quack) ?? false}
         />
       ))}
     </div>

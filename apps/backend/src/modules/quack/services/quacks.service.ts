@@ -1,3 +1,4 @@
+import { UserRole } from '@/generated/prisma/client';
 import { Mood, Quack } from '@/modules/quack/domain/quack';
 import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
@@ -57,10 +58,14 @@ export class QuacksService {
   async deleteQuack(user: Identity, quackId: string): Promise<void> {
     const quack = await this.quackRepository.findQuackById(quackId);
     if (!quack) throw new NotFoundException('Quack not found');
-    // The ownership check lives here, not in the UI: hiding the button is
-    // only a convenience.
-    if (quack.userId !== user.id) {
-      throw new ForbiddenException('You can only delete your own quacks');
+    // The permission check lives here, not in the UI: hiding the button is
+    // only a convenience. The author or an admin may delete.
+    const isOwner = quack.userId === user.id;
+    const isAdmin = user.role === UserRole.admin;
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenException(
+        'Only the author or an admin can delete this quack',
+      );
     }
     await this.quackRepository.deleteQuack(quackId);
   }

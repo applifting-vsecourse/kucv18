@@ -6,6 +6,7 @@ import { Seo } from "@/components/Seo"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { useSession } from "@/features/auth/hooks/useSession"
+import type { Quack } from "@/features/quack/api/quackSchemas"
 import { quacksQueryOptions } from "@/features/quack/api/quacksQueryOptions"
 import { QuackForm } from "@/features/quack/components/QuackForm"
 import { QuackList } from "@/features/quack/components/QuackList"
@@ -27,6 +28,9 @@ function QuacksPage() {
   const navigate = useNavigate({ from: Route.fullPath })
   const quacksQuery = useQuery(quacksQueryOptions(search, view === "mine"))
   const { user } = useSession()
+  const isAdmin = user?.role === "admin"
+  // The author or an admin; the server enforces the same rule.
+  const canDelete = (quack: Quack) => isAdmin || quack.userId === user?.id
 
   return (
     <>
@@ -66,7 +70,7 @@ function QuacksPage() {
         <QuackList
           search={search}
           quacks={quacksQuery.data ?? []}
-          currentUserId={user?.id}
+          canDelete={canDelete}
           isMineOnly={view === "mine"}
           onWriteFirst={() => document.querySelector<HTMLTextAreaElement>("textarea")?.focus()}
           isLoading={quacksQuery.isLoading}
