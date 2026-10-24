@@ -1,4 +1,5 @@
 // Example component test — the pattern to copy for your own components.
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
@@ -16,6 +17,9 @@ const quack = (overrides: Partial<Quack> = {}): Quack => ({
   poll: null,
   ...overrides,
 })
+
+const renderWithClient = (ui: React.ReactElement) =>
+  render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>)
 
 describe("QuackList", () => {
   it("renders quacks with author info", () => {
@@ -66,5 +70,44 @@ describe("QuackList", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /reload/i }))
     expect(onReload).toHaveBeenCalledOnce()
+  })
+
+  it("offers Delete only on the current user's quacks", () => {
+    renderWithClient(
+      <QuackList
+        quacks={[quack({ id: "mine" }), quack({ id: "theirs", userId: "u2", text: "not mine" })]}
+        currentUserId="u1"
+      />,
+    )
+
+    expect(screen.getAllByRole("button", { name: "Delete quack" })).toHaveLength(1)
+  })
+
+  it("asks before deleting", async () => {
+    renderWithClient(
+      <QuackList
+        quacks={[quack()]}
+        currentUserId="u1"
+      />,
+    )
+
+    await userEvent.click(screen.getByRole("button", { name: "Delete quack" }))
+
+    expect(screen.getByRole("dialog")).toHaveTextContent("Delete this quack?")
+  })
+
+  it("tells you when Mine is empty and offers to write the first quack", async () => {
+    const onWriteFirst = vi.fn()
+    render(
+      <QuackList
+        quacks={[]}
+        isMineOnly
+        onWriteFirst={onWriteFirst}
+      />,
+    )
+
+    expect(screen.getByText("You haven't posted any quacks yet.")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Write your first quack" }))
+    expect(onWriteFirst).toHaveBeenCalledOnce()
   })
 })

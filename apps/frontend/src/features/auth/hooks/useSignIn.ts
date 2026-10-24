@@ -19,7 +19,9 @@ export function useSignIn() {
       if (error) throw new Error(error.message ?? "Sign in failed")
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: authKeys.session() })
+      // "all": nothing on the login page uses the session, so an active-only
+      // refetch would leave it "signed out" until a reload.
+      await queryClient.invalidateQueries({ queryKey: authKeys.session(), refetchType: "all" })
     },
   })
 }

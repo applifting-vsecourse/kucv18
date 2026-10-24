@@ -41,8 +41,9 @@ const mapPrismaQuackToDomain = (
 export class QuackRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getQuacks(viewerId: string): Promise<Quack[]> {
+  async getQuacks(viewerId: string, onlyMine = false): Promise<Quack[]> {
     const quacks = await this.prisma.quack.findMany({
+      where: onlyMine ? { userId: viewerId } : undefined,
       include: { user: true, poll: { include: pollInclude(viewerId) } },
       orderBy: { createdAt: 'desc' },
     });
@@ -78,5 +79,15 @@ export class QuackRepository {
       },
     });
     return mapPrismaQuackToDomain(quack);
+  }
+
+  async findQuackById(id: string): Promise<Quack | null> {
+    const quack = await this.prisma.quack.findUnique({ where: { id } });
+    return quack ? mapPrismaQuackToDomain(quack) : null;
+  }
+
+  // The poll, its options and votes go with the quack (onDelete: Cascade).
+  async deleteQuack(id: string): Promise<void> {
+    await this.prisma.quack.deleteMany({ where: { id } });
   }
 }

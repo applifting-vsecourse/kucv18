@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { Prisma } from '@/generated/prisma/client';
 import { Poll } from '@/modules/poll/domain/poll';
 import {
   mapPrismaPollToDomain,
@@ -38,10 +39,28 @@ export class PollRepository {
     optionId: string;
     userId: string;
   }): Promise<void> {
-    await this.prisma.pollVote.upsert({
-      where: { pollId_userId: { pollId: data.pollId, userId: data.userId } },
-      create: data,
-      update: { optionId: data.optionId },
-    });
+    const where = {
+      pollId_userId: { pollId: data.pollId, userId: data.userId },
+    };
+    try {
+      await this.prisma.pollVote.upsert({
+        where,
+        create: data,
+        update: { optionId: data.optionId },
+      });
+    } catch (error) {
+      // Two first votes from the same person (double submit, two tabs) can
+      // both try to insert; the loser's row already exists, so update it.
+      if (
+        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+        error.code !== 'P2002'
+      ) {
+        throw error;
+      }
+      await this.prisma.pollVote.update({
+        where,
+        data: { optionId: data.optionId },
+      });
+    }
   }
 }

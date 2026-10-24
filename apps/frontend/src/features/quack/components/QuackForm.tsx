@@ -50,10 +50,7 @@ const schema = z
     isPoll: z.boolean(),
     options: z.array(
       z.object({
-        text: z
-          .string()
-          .trim()
-          .max(MAX_OPTION_LENGTH, `Keep it under ${MAX_OPTION_LENGTH} characters`),
+        text: z.string().trim(),
       }),
     ),
   })
@@ -61,12 +58,22 @@ const schema = z
     if (!values.isPoll) return
     const seen = new Set<string>()
     values.options.forEach((option, index) => {
-      const key = option.text.toLowerCase()
+      // Same normalisation as the server: case and accents are ignored.
+      const key = option.text
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase()
       if (!option.text) {
         ctx.addIssue({
           code: "custom",
           path: ["options", index, "text"],
           message: "Write an answer",
+        })
+      } else if (option.text.length > MAX_OPTION_LENGTH) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["options", index, "text"],
+          message: `Keep it under ${MAX_OPTION_LENGTH} characters`,
         })
       } else if (seen.has(key)) {
         ctx.addIssue({

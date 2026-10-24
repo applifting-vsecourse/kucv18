@@ -5,9 +5,11 @@ import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Query,
   UseGuards,
@@ -48,7 +50,11 @@ export class QuacksController {
     @User() user: Identity,
     @Query() query: ListQuacksQuery,
   ): Promise<QuackResponseDto[]> {
-    const quacks = await this.quacksService.getQuacks(user, query.q);
+    const quacks = await this.quacksService.getQuacks(
+      user,
+      query.q,
+      query.mine,
+    );
     return quacks.map(QuackResponseDto.fromDomain);
   }
 
@@ -68,5 +74,16 @@ export class QuacksController {
       pollOptions: body.poll?.options,
     });
     return QuackResponseDto.fromDomain(quack);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete one of your own quacks' })
+  @ApiResponse({ status: 204, description: 'Deleted' })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 403, description: 'Not your quack' })
+  @ApiResponse({ status: 404, description: 'Quack not found' })
+  async remove(@User() user: Identity, @Param('id') id: string): Promise<void> {
+    await this.quacksService.deleteQuack(user, id);
   }
 }

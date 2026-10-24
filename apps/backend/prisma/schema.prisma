@@ -149,7 +149,7 @@ model User {
   accounts        Account[]
   quacks          Quack[]
   pollVotes       PollVote[]
-  role           UserRole  @default(user)
+  role            UserRole  @default(user)
   bio             String?   @db.VarChar(160)
   defaultMood     Mood?
 
