@@ -59,22 +59,33 @@ test("nobody can delete someone else's quack", async ({ browser }) => {
   }
 })
 
-test("the API answers 401 signed out, 404 for an unknown quack and 204 for an admin", async ({
+test("signed out, deleting a quack is a 401", async ({ browser, request }) => {
+  const author = await browser.newPage()
+  let id: string | undefined
+  try {
+    id = await postQuackAs(author, AUTHOR, `Signed out ${Date.now()}`)
+    // `request` carries no session.
+    expect((await request.delete(`${API}/quacks/${id}`)).status()).toBe(401)
+  } finally {
+    if (id) await author.request.delete(`${API}/quacks/${id}`)
+    await author.close()
+  }
+})
+
+test("deleting a quack that does not exist is a 404", async ({ page }) => {
+  await signIn(page, ADMIN.email, ADMIN.password)
+  expect((await page.request.delete(`${API}/quacks/does-not-exist`)).status()).toBe(404)
+})
+
+test("an admin gets 204 when deleting someone else's quack through the API", async ({
   browser,
-  request,
 }) => {
-  const text = `Spam via API ${Date.now()}`
   const author = await browser.newPage()
   const admin = await browser.newPage()
   let id: string | undefined
   try {
-    id = await postQuackAs(author, AUTHOR, text)
-
-    // `request` carries no session.
-    expect((await request.delete(`${API}/quacks/${id}`)).status()).toBe(401)
-
+    id = await postQuackAs(author, AUTHOR, `Admin via API ${Date.now()}`)
     await signIn(admin, ADMIN.email, ADMIN.password)
-    expect((await admin.request.delete(`${API}/quacks/does-not-exist`)).status()).toBe(404)
     // The admin is not the author, and the server still lets them delete.
     expect((await admin.request.delete(`${API}/quacks/${id}`)).status()).toBe(204)
     id = undefined

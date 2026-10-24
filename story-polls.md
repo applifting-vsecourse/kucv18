@@ -1,5 +1,7 @@
 # Story: ankety
 
+> Stav: hotovo a zmergováno (PR #8). Zachováno pro historii. Aktuální story je v `story.md`.
+
 ## Problém
 
 Lidé se v quacích ptají ("kam půjdeme na oběd?") a odpovědi pak počítají ručně. Někdo se vždycky splete a quack zapadne pod odpověďmi.

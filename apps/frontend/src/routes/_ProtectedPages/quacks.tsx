@@ -28,8 +28,9 @@ function QuacksPage() {
   const navigate = useNavigate({ from: Route.fullPath })
   const quacksQuery = useQuery(quacksQueryOptions(search, view === "mine"))
   const { user } = useSession()
+  const isAdmin = user?.role === "admin"
   // The author or an admin; the server enforces the same rule.
-  const canDelete = (quack: Quack) => user?.role === "admin" || quack.userId === user?.id
+  const canDelete = (quack: Quack) => isAdmin || quack.userId === user?.id
 
   return (
     <>
