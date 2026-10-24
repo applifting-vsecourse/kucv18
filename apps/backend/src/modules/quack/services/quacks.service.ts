@@ -57,9 +57,11 @@ export class QuacksService {
   async deleteQuack(user: Identity, quackId: string): Promise<void> {
     const quack = await this.quackRepository.findQuackById(quackId);
     if (!quack) throw new NotFoundException('Quack not found');
-    // The ownership check lives here, not in the UI: hiding the button is
-    // only a convenience.
-    if (quack.userId !== user.id) {
+    // The permission check lives here, not in the UI: hiding the button is
+    // only a convenience. The author or an admin may delete.
+    const isOwner = quack.userId === user.id;
+    const isAdmin = user.role === 'admin';
+    if (!isOwner && !isAdmin) {
       throw new ForbiddenException('You can only delete your own quacks');
     }
     await this.quackRepository.deleteQuack(quackId);

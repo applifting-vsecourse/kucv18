@@ -67,6 +67,7 @@ function QuacksPage() {
           search={search}
           quacks={quacksQuery.data ?? []}
           currentUserId={user?.id}
+          isAdmin={user?.role === "admin"}
           isMineOnly={view === "mine"}
           onWriteFirst={() => document.querySelector<HTMLTextAreaElement>("textarea")?.focus()}
           isLoading={quacksQuery.isLoading}

@@ -11,7 +11,7 @@ import {
 import { mock } from 'jest-mock-extended';
 import { QuacksService } from './quacks.service';
 
-const user = { id: 'u1' } as Identity;
+const user = { id: 'u1', role: 'user' } as Identity;
 
 const aQuack = (overrides: Partial<Quack> = {}): Quack => ({
   id: 'q1',
@@ -150,6 +150,16 @@ describe('QuacksService', () => {
         new QuacksService(repository).deleteQuack(user, 'q1'),
       ).rejects.toThrow(ForbiddenException);
       expect(repository.deleteQuack).not.toHaveBeenCalled();
+    });
+
+    it("lets an admin delete someone else's quack", async () => {
+      const repository = mock<QuackRepository>();
+      repository.findQuackById.mockResolvedValue(aQuack({ userId: 'u2' }));
+      const admin = { id: 'admin1', role: 'admin' } as Identity;
+
+      await new QuacksService(repository).deleteQuack(admin, 'q1');
+
+      expect(repository.deleteQuack).toHaveBeenCalledWith('q1');
     });
 
     it('reports a missing quack', async () => {

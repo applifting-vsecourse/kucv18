@@ -36,6 +36,10 @@ The app's UI is English, whatever language the request is written in. If a promp
 
 `story.md` and `plan.md` are written in Czech. Keep them in Czech when creating or updating them. This applies to the documents only: code, identifiers, commit messages and every string a user sees in the UI stay English (see above).
 
+### Permissions are checked on the server, in one place
+
+Who may do what (owner, admin, any role) is one condition in the service, next to the data it needs, for example `isOwner || isAdmin`. The role comes from the session via `@User()`, never from the URL or the body. The UI only mirrors the rule to hide buttons: pass a computed flag such as `isAdmin` down from the route, and never ship a rule that exists only in React. Every permission rule gets an E2E test that calls the API directly, and the test must fail when the check is switched off.
+
 ### The app is already running
 
 Assume the dev servers are up. If something is listening on the app's ports, that is this application: use it. Don't start a second instance, don't restart it, don't run `pnpm dev`.

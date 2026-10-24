@@ -11,8 +11,11 @@ type QuackListProps = {
   isLoading?: boolean
   error?: Error
   search?: string
-  // Quacks by this user get a Delete action.
+  // Quacks by this user get a Delete action (all of them, for an admin).
   currentUserId?: string
+  // Admins may delete any quack. Hiding the button is only a convenience;
+  // the server decides.
+  isAdmin?: boolean
   // Set when the list is filtered to the current user's quacks.
   isMineOnly?: boolean
   onWriteFirst?: () => void
@@ -25,6 +28,7 @@ export function QuackList({
   error,
   search,
   currentUserId,
+  isAdmin = false,
   isMineOnly,
   onWriteFirst,
   onReload,
@@ -84,7 +88,7 @@ export function QuackList({
         <QuackItem
           key={quack.id}
           quack={quack}
-          canDelete={quack.userId === currentUserId}
+          canDelete={isAdmin || quack.userId === currentUserId}
         />
       ))}
     </div>

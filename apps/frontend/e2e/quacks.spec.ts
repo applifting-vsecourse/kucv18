@@ -23,6 +23,9 @@ test("author can post a quack and delete it", async ({ page }) => {
 
   await quack.getByRole("button", { name: "Delete quack" }).click()
   await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click()
+  // While the dialog is open the rest of the page is hidden from the accessibility
+  // tree, so "no such article" would pass even if the delete failed.
+  await expect(page.getByRole("dialog")).toBeHidden()
   await expect(quack).toHaveCount(0)
 })
 
@@ -47,4 +50,22 @@ test("Mine shows only my quacks", async ({ page }) => {
   await expect(page).toHaveURL(/view=mine/)
   await expect(page.getByRole("article").first()).toBeVisible()
   await expect(page.getByRole("article").filter({ hasNotText: "@DeepDuckThoughts" })).toHaveCount(0)
+})
+
+test("admin can delete someone else's quack", async ({ browser }) => {
+  const text = `Spam ${Date.now()}`
+  const author = await browser.newPage()
+  await signIn(author, "caffeinatedduck@example.com", "password1")
+  await author.request.post(`${API}/quacks`, { data: { text } })
+
+  const admin = await browser.newPage()
+  await signIn(admin, "admin@example.com", "adminpassword")
+  await admin.goto("/quacks")
+
+  const spam = admin.getByRole("article").filter({ hasText: text })
+  await expect(spam).toBeVisible()
+  await spam.getByRole("button", { name: "Delete quack" }).click()
+  await admin.getByRole("dialog").getByRole("button", { name: "Delete" }).click()
+  await expect(admin.getByRole("dialog")).toBeHidden()
+  await expect(spam).toHaveCount(0)
 })

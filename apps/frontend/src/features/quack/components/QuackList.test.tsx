@@ -83,6 +83,18 @@ describe("QuackList", () => {
     expect(screen.getAllByRole("button", { name: "Delete quack" })).toHaveLength(1)
   })
 
+  it("offers an admin Delete on every quack", () => {
+    renderWithClient(
+      <QuackList
+        quacks={[quack({ id: "mine" }), quack({ id: "theirs", userId: "u2", text: "not mine" })]}
+        currentUserId="admin1"
+        isAdmin
+      />,
+    )
+
+    expect(screen.getAllByRole("button", { name: "Delete quack" })).toHaveLength(2)
+  })
+
   it("asks before deleting", async () => {
     renderWithClient(
       <QuackList
