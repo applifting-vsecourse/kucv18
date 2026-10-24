@@ -76,7 +76,7 @@ describe("QuackList", () => {
     renderWithClient(
       <QuackList
         quacks={[quack({ id: "mine" }), quack({ id: "theirs", userId: "u2", text: "not mine" })]}
-        currentUserId="u1"
+        canDelete={(item) => item.userId === "u1"}
       />,
     )
 
@@ -87,8 +87,7 @@ describe("QuackList", () => {
     renderWithClient(
       <QuackList
         quacks={[quack({ id: "mine" }), quack({ id: "theirs", userId: "u2", text: "not mine" })]}
-        currentUserId="admin1"
-        isAdmin
+        canDelete={() => true}
       />,
     )
 
@@ -99,7 +98,7 @@ describe("QuackList", () => {
     renderWithClient(
       <QuackList
         quacks={[quack()]}
-        currentUserId="u1"
+        canDelete={(item) => item.userId === "u1"}
       />,
     )
 

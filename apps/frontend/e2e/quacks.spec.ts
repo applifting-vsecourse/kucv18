@@ -1,12 +1,23 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 
+import { ADMIN, API, AUTHOR, OTHER } from "./accounts"
 import { signIn } from "./signIn"
 
-const API = "http://localhost:4050/api"
+// Signs in on a fresh page and has that user post a quack through the API.
+async function postQuackAs(
+  page: Page,
+  account: { email: string; password: string },
+  text: string,
+): Promise<string> {
+  await signIn(page, account.email, account.password)
+  const response = await page.request.post(`${API}/quacks`, { data: { text } })
+  expect(response.status()).toBe(201)
+  return ((await response.json()) as { id: string }).id
+}
 
 test("author can post a quack and delete it", async ({ page }) => {
   const text = `E2E quack ${Date.now()}`
-  await signIn(page, "caffeinatedduck@example.com", "password1")
+  await signIn(page, AUTHOR.email, AUTHOR.password)
   await page.goto("/quacks")
 
   await page.getByLabel("New quack").fill(text)
@@ -27,28 +38,55 @@ test("nobody can delete someone else's quack", async ({ browser }) => {
   // only ever delete test data, never the seed.
   const text = `Not yours ${Date.now()}`
   const author = await browser.newPage()
-  await signIn(author, "caffeinatedduck@example.com", "password1")
-  const created = await author.request.post(`${API}/quacks`, { data: { text } })
-  const { id } = (await created.json()) as { id: string }
-
   const other = await browser.newPage()
-  await signIn(other, "deepduckthoughts@example.com", "password2")
-  await other.goto("/quacks")
+  let id: string | undefined
+  try {
+    id = await postQuackAs(author, AUTHOR, text)
+    await signIn(other, OTHER.email, OTHER.password)
+    await other.goto("/quacks")
 
-  const othersQuack = other.getByRole("article").filter({ hasText: text })
-  await expect(othersQuack).toBeVisible()
-  await expect(othersQuack.getByRole("button", { name: "Delete quack" })).toHaveCount(0)
+    const othersQuack = other.getByRole("article").filter({ hasText: text })
+    await expect(othersQuack).toBeVisible()
+    await expect(othersQuack.getByRole("button", { name: "Delete quack" })).toHaveCount(0)
 
-  // The button is hidden. Now skip the UI and ask the server directly.
-  const response = await other.request.delete(`${API}/quacks/${id}`)
-  expect(response.status()).toBe(403)
+    // The button is hidden. Now skip the UI and ask the server directly.
+    const response = await other.request.delete(`${API}/quacks/${id}`)
+    expect(response.status()).toBe(403)
+  } finally {
+    if (id) await author.request.delete(`${API}/quacks/${id}`)
+    await author.close()
+    await other.close()
+  }
+})
 
-  // Clean up after ourselves.
-  await author.request.delete(`${API}/quacks/${id}`)
+test("the API answers 401 signed out, 404 for an unknown quack and 204 for an admin", async ({
+  browser,
+  request,
+}) => {
+  const text = `Spam via API ${Date.now()}`
+  const author = await browser.newPage()
+  const admin = await browser.newPage()
+  let id: string | undefined
+  try {
+    id = await postQuackAs(author, AUTHOR, text)
+
+    // `request` carries no session.
+    expect((await request.delete(`${API}/quacks/${id}`)).status()).toBe(401)
+
+    await signIn(admin, ADMIN.email, ADMIN.password)
+    expect((await admin.request.delete(`${API}/quacks/does-not-exist`)).status()).toBe(404)
+    // The admin is not the author, and the server still lets them delete.
+    expect((await admin.request.delete(`${API}/quacks/${id}`)).status()).toBe(204)
+    id = undefined
+  } finally {
+    if (id) await author.request.delete(`${API}/quacks/${id}`)
+    await author.close()
+    await admin.close()
+  }
 })
 
 test("Mine shows only my quacks", async ({ page }) => {
-  await signIn(page, "deepduckthoughts@example.com", "password2")
+  await signIn(page, OTHER.email, OTHER.password)
   await page.goto("/quacks")
 
   await page.getByRole("tab", { name: "Mine" }).click()
@@ -60,17 +98,24 @@ test("Mine shows only my quacks", async ({ page }) => {
 test("admin can delete someone else's quack", async ({ browser }) => {
   const text = `Spam ${Date.now()}`
   const author = await browser.newPage()
-  await signIn(author, "caffeinatedduck@example.com", "password1")
-  await author.request.post(`${API}/quacks`, { data: { text } })
-
   const admin = await browser.newPage()
-  await signIn(admin, "admin@example.com", "adminpassword")
-  await admin.goto("/quacks")
+  let id: string | undefined
+  try {
+    id = await postQuackAs(author, AUTHOR, text)
 
-  const spam = admin.getByRole("article").filter({ hasText: text })
-  await expect(spam).toBeVisible()
-  await spam.getByRole("button", { name: "Delete quack" }).click()
-  await admin.getByRole("dialog").getByRole("button", { name: "Delete" }).click()
-  await expect(admin.getByRole("dialog")).toBeHidden()
-  await expect(spam).toHaveCount(0)
+    await signIn(admin, ADMIN.email, ADMIN.password)
+    await admin.goto("/quacks")
+
+    const spam = admin.getByRole("article").filter({ hasText: text })
+    await expect(spam).toBeVisible()
+    await spam.getByRole("button", { name: "Delete quack" }).click()
+    await admin.getByRole("dialog").getByRole("button", { name: "Delete" }).click()
+    await expect(admin.getByRole("dialog")).toBeHidden()
+    await expect(spam).toHaveCount(0)
+    id = undefined
+  } finally {
+    if (id) await author.request.delete(`${API}/quacks/${id}`)
+    await author.close()
+    await admin.close()
+  }
 })
