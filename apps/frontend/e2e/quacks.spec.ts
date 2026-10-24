@@ -1,15 +1,8 @@
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test } from "@playwright/test"
 
 import { signIn } from "./signIn"
 
 const API = "http://localhost:4050/api"
-
-async function findQuackNotBy(page: Page, username: string): Promise<{ id: string }> {
-  const quacks: { id: string; user: { username: string } }[] = await (
-    await page.request.get(`${API}/quacks`)
-  ).json()
-  return quacks.find((quack) => quack.user.username !== username)!
-}
 
 test("author can post a quack and delete it", async ({ page }) => {
   const text = `E2E quack ${Date.now()}`
@@ -29,17 +22,29 @@ test("author can post a quack and delete it", async ({ page }) => {
   await expect(quack).toHaveCount(0)
 })
 
-test("nobody can delete someone else's quack", async ({ page }) => {
-  await signIn(page, "deepduckthoughts@example.com", "password2")
-  await page.goto("/quacks")
+test("nobody can delete someone else's quack", async ({ browser }) => {
+  // The author creates the quack this test goes after, so a broken check can
+  // only ever delete test data, never the seed.
+  const text = `Not yours ${Date.now()}`
+  const author = await browser.newPage()
+  await signIn(author, "caffeinatedduck@example.com", "password1")
+  const created = await author.request.post(`${API}/quacks`, { data: { text } })
+  const { id } = (await created.json()) as { id: string }
 
-  const othersQuack = page.getByRole("article").filter({ hasNotText: "@DeepDuckThoughts" }).first()
+  const other = await browser.newPage()
+  await signIn(other, "deepduckthoughts@example.com", "password2")
+  await other.goto("/quacks")
+
+  const othersQuack = other.getByRole("article").filter({ hasText: text })
+  await expect(othersQuack).toBeVisible()
   await expect(othersQuack.getByRole("button", { name: "Delete quack" })).toHaveCount(0)
 
   // The button is hidden. Now skip the UI and ask the server directly.
-  const notMine = await findQuackNotBy(page, "DeepDuckThoughts")
-  const response = await page.request.delete(`${API}/quacks/${notMine.id}`)
+  const response = await other.request.delete(`${API}/quacks/${id}`)
   expect(response.status()).toBe(403)
+
+  // Clean up after ourselves.
+  await author.request.delete(`${API}/quacks/${id}`)
 })
 
 test("Mine shows only my quacks", async ({ page }) => {
