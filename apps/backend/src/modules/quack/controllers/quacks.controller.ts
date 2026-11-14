@@ -23,6 +23,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateQuackDto } from './dto/create-quack.dto';
+import { CreateReplyDto } from './dto/create-reply.dto';
 import { ListQuacksQuery } from './dto/list-quacks.query';
 import { QuackResponseDto } from './dto/quack.response.dto';
 
@@ -76,9 +77,51 @@ export class QuacksController {
     return QuackResponseDto.fromDomain(quack);
   }
 
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Read one quack (or its tombstone) with its replies, oldest first',
+  })
+  @ApiResponse({ status: 200, type: QuackResponseDto })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 404, description: 'Quack not found' })
+  async getThread(
+    @User() user: Identity,
+    @Param('id') id: string,
+  ): Promise<QuackResponseDto> {
+    return QuackResponseDto.fromDomain(
+      await this.quacksService.getThread(user, id),
+    );
+  }
+
+  @Post(':id/replies')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Reply to a quack (text and optional mood)' })
+  @ApiResponse({ status: 201, type: QuackResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid reply, or the quack is itself a reply',
+  })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 404, description: 'Quack not found' })
+  @ApiResponse({ status: 409, description: 'The quack was deleted' })
+  async reply(
+    @User() user: Identity,
+    @Param('id') id: string,
+    @Body() body: CreateReplyDto,
+  ): Promise<QuackResponseDto> {
+    const reply = await this.quacksService.createReply(user, id, {
+      text: body.text,
+      mood: body.mood,
+    });
+    return QuackResponseDto.fromDomain(reply);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a quack (its author or an admin)' })
+  @ApiOperation({
+    summary:
+      'Delete a quack or reply (its author or an admin). A quack that has replies is kept as an empty tombstone.',
+  })
   @ApiResponse({ status: 204, description: 'Deleted' })
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({

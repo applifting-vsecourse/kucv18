@@ -14,6 +14,9 @@ const quack = (overrides: Partial<Quack> = {}): Quack => ({
   userId: "u1",
   createdAt: new Date("2026-01-01T12:00:00Z"),
   user: { id: "u1", name: "Caffeinated Duck", username: "CaffeinatedDuck" },
+  parentId: null,
+  replyCount: 0,
+  isDeleted: false,
   poll: null,
   ...overrides,
 })
@@ -120,5 +123,85 @@ describe("QuackList", () => {
     expect(screen.getByText("You haven't posted any quacks yet.")).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Write your first quack" }))
     expect(onWriteFirst).toHaveBeenCalledOnce()
+  })
+  describe("replies", () => {
+    const threadLink = (quackId: string, label: string) => (
+      <a href={`/quacks/${quackId}`}>{label}</a>
+    )
+    const tombstone = quack({
+      id: "gone",
+      text: null,
+      userId: null,
+      createdAt: null,
+      user: null,
+      isDeleted: true,
+      replyCount: 2,
+    })
+
+    it("shows a deleted quack as a placeholder with nothing else", () => {
+      render(
+        <QuackList
+          quacks={[tombstone]}
+          renderThreadLink={threadLink}
+        />,
+      )
+
+      expect(screen.getByText("This quack was deleted")).toBeInTheDocument()
+      expect(screen.getByRole("link", { name: "2 replies" })).toHaveAttribute(
+        "href",
+        "/quacks/gone",
+      )
+      expect(screen.queryByText("Caffeinated Duck")).not.toBeInTheDocument()
+    })
+
+    it("never offers Delete on a deleted quack", () => {
+      renderWithClient(
+        <QuackList
+          quacks={[tombstone]}
+          canDelete={() => true}
+        />,
+      )
+
+      expect(screen.queryByRole("button", { name: "Delete quack" })).not.toBeInTheDocument()
+    })
+
+    it("shows the reply count and links to the thread", () => {
+      render(
+        <QuackList
+          quacks={[quack({ id: "a", replyCount: 1 }), quack({ id: "b", replyCount: 0 })]}
+          renderThreadLink={threadLink}
+        />,
+      )
+
+      expect(screen.getByRole("link", { name: "1 reply" })).toHaveAttribute("href", "/quacks/a")
+      expect(screen.getByRole("link", { name: "Reply" })).toHaveAttribute("href", "/quacks/b")
+    })
+
+    it("links a reply (a search hit) to the thread it belongs to", () => {
+      render(
+        <QuackList
+          quacks={[quack({ id: "r1", parentId: "q1" })]}
+          renderThreadLink={threadLink}
+        />,
+      )
+
+      expect(screen.getByRole("link", { name: "View thread" })).toHaveAttribute(
+        "href",
+        "/quacks/q1",
+      )
+    })
+
+    it("tells the author the replies stay when deleting a quack that has replies", async () => {
+      renderWithClient(
+        <QuackList
+          quacks={[quack({ replyCount: 3 })]}
+          canDelete={() => true}
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Delete quack" }))
+
+      expect(screen.getByRole("dialog")).toHaveTextContent("The replies stay")
+    })
   })
 })

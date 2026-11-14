@@ -11,6 +11,7 @@ import { quacksQueryOptions } from "@/features/quack/api/quacksQueryOptions"
 import { QuackForm } from "@/features/quack/components/QuackForm"
 import { QuackList } from "@/features/quack/components/QuackList"
 import { QuackSearch, SEARCH_MAX_LENGTH } from "@/features/quack/components/QuackSearch"
+import { renderThreadLink } from "@/features/quack/components/ThreadLink"
 
 export const Route = createFileRoute("/_ProtectedPages/quacks")({
   validateSearch: z.object({
@@ -30,7 +31,8 @@ function QuacksPage() {
   const { user } = useSession()
   const isAdmin = user?.role === "admin"
   // The author or an admin; the server enforces the same rule.
-  const canDelete = (quack: Quack) => isAdmin || quack.userId === user?.id
+  // A deleted quack has no author left and cannot be deleted again.
+  const canDelete = (quack: Quack) => !quack.isDeleted && (isAdmin || quack.userId === user?.id)
 
   return (
     <>
@@ -71,6 +73,7 @@ function QuacksPage() {
           search={search}
           quacks={quacksQuery.data ?? []}
           canDelete={canDelete}
+          renderThreadLink={renderThreadLink}
           isMineOnly={view === "mine"}
           onWriteFirst={() => document.querySelector<HTMLTextAreaElement>("textarea")?.focus()}
           isLoading={quacksQuery.isLoading}

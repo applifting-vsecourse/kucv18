@@ -14,10 +14,14 @@ import {
 
 import { useDeleteQuack } from "@/features/quack/hooks/useDeleteQuack"
 
-type QuackDeleteButtonProps = { quackId: string }
+type QuackDeleteButtonProps = {
+  quackId: string
+  // A quack with replies keeps an empty "deleted" placeholder so the replies stay.
+  hasReplies?: boolean
+}
 
 // The server decides who may delete; this button is only shown to the author.
-export function QuackDeleteButton({ quackId }: QuackDeleteButtonProps) {
+export function QuackDeleteButton({ quackId, hasReplies }: QuackDeleteButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const deleteQuack = useDeleteQuack()
 
@@ -46,7 +50,9 @@ export function QuackDeleteButton({ quackId }: QuackDeleteButtonProps) {
           <DialogHeader>
             <DialogTitle>Delete this quack?</DialogTitle>
             <DialogDescription>
-              It will be removed from the feed, along with its poll. This can&apos;t be undone.
+              {hasReplies
+                ? "Its text and poll will be removed. The replies stay. This can't be undone."
+                : "It will be removed from the feed, along with its poll. This can't be undone."}
             </DialogDescription>
           </DialogHeader>
 
