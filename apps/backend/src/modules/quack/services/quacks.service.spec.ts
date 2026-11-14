@@ -5,6 +5,7 @@ import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -18,6 +19,9 @@ const aQuack = (overrides: Partial<Quack> = {}): Quack => ({
   text: 'quack quack',
   mood: null,
   userId: 'u1',
+  parentId: null,
+  deletedAt: null,
+  replyCount: 0,
   createdAt: new Date('2026-01-01T12:00:00Z'),
   updatedAt: new Date('2026-01-01T12:00:00Z'),
   user: { id: 'u1', name: 'Caffeinated Duck', username: 'CaffeinatedDuck' },
@@ -55,6 +59,7 @@ describe('QuacksService', () => {
     const other = aQuack({ id: 'c', text: 'quack' });
     const repository = mock<QuackRepository>();
     repository.getQuacks.mockResolvedValue([cat, byAuthor, other]);
+    repository.getSearchableQuacks.mockResolvedValue([cat, byAuthor, other]);
 
     const service = new QuacksService(repository);
 
@@ -169,6 +174,93 @@ describe('QuacksService', () => {
       await expect(
         new QuacksService(repository).deleteQuack(user, 'nope'),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+  it('searches replies too, from the searchable set that has no tombstones', async () => {
+    const reply = aQuack({ id: 'r1', text: 'Kočka je super', parentId: 'q1' });
+    const repository = mock<QuackRepository>();
+    repository.getSearchableQuacks.mockResolvedValue([reply]);
+
+    await expect(
+      new QuacksService(repository).getQuacks(user, 'kocka'),
+    ).resolves.toEqual([reply]);
+    expect(repository.getSearchableQuacks).toHaveBeenCalledWith('u1', false);
+    expect(repository.getQuacks).not.toHaveBeenCalled();
+  });
+
+  describe('createReply', () => {
+    it('creates a reply owned by the signed-in user', async () => {
+      const repository = mock<QuackRepository>();
+      repository.findQuackById.mockResolvedValue(aQuack({ id: 'q1' }));
+      repository.createQuack.mockResolvedValue(aQuack({ id: 'r1' }));
+
+      await new QuacksService(repository).createReply(user, 'q1', {
+        text: 'hi',
+        mood: 'happy',
+      });
+
+      expect(repository.createQuack).toHaveBeenCalledWith({
+        text: 'hi',
+        mood: 'happy',
+        parentId: 'q1',
+        userId: 'u1',
+      });
+    });
+
+    it('404s when the quack does not exist', async () => {
+      const repository = mock<QuackRepository>();
+      repository.findQuackById.mockResolvedValue(null);
+
+      await expect(
+        new QuacksService(repository).createReply(user, 'nope', { text: 'x' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('rejects a reply to a reply', async () => {
+      const repository = mock<QuackRepository>();
+      repository.findQuackById.mockResolvedValue(aQuack({ parentId: 'q0' }));
+
+      await expect(
+        new QuacksService(repository).createReply(user, 'q1', { text: 'x' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.createQuack).not.toHaveBeenCalled();
+    });
+
+    it('rejects a reply to a deleted quack with 409', async () => {
+      const repository = mock<QuackRepository>();
+      repository.findQuackById.mockResolvedValue(
+        aQuack({ text: null, deletedAt: new Date(), replyCount: 1 }),
+      );
+
+      await expect(
+        new QuacksService(repository).createReply(user, 'q1', { text: 'x' }),
+      ).rejects.toThrow(ConflictException);
+      expect(repository.createQuack).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getThread', () => {
+    it('404s for a missing quack', async () => {
+      const repository = mock<QuackRepository>();
+      repository.getThread.mockResolvedValue(null);
+
+      await expect(
+        new QuacksService(repository).getThread(user, 'nope'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('deleting a tombstone', () => {
+    it('is a 404, even for its former author or an admin', async () => {
+      const repository = mock<QuackRepository>();
+      repository.findQuackById.mockResolvedValue(
+        aQuack({ text: null, deletedAt: new Date(), replyCount: 1 }),
+      );
+
+      await expect(
+        new QuacksService(repository).deleteQuack(user, 'q1'),
+      ).rejects.toThrow(NotFoundException);
+      expect(repository.deleteQuack).not.toHaveBeenCalled();
     });
   });
 });

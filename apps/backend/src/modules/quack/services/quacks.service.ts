@@ -4,6 +4,7 @@ import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -26,14 +27,18 @@ export class QuacksService {
     onlyMine = false,
   ): Promise<Quack[]> {
     // "mine" is resolved from the session, never from a user id in the request
-    const quacks = await this.quackRepository.getQuacks(user.id, onlyMine);
     const needle = normalize((search ?? '').trim());
-    if (!needle) return quacks;
-    // Done here rather than in SQL: Postgres has no accent-insensitive
-    // matching without the unaccent extension.
+    if (!needle) return this.quackRepository.getQuacks(user.id, onlyMine);
+    // Searching also looks into replies (never into tombstones). Done here
+    // rather than in SQL: Postgres has no accent-insensitive matching
+    // without the unaccent extension.
+    const quacks = await this.quackRepository.getSearchableQuacks(
+      user.id,
+      onlyMine,
+    );
     return quacks.filter(
       (quack) =>
-        normalize(quack.text).includes(needle) ||
+        normalize(quack.text ?? '').includes(needle) ||
         normalize(quack.user?.name ?? '').includes(needle),
     );
   }
@@ -55,9 +60,40 @@ export class QuacksService {
     });
   }
 
+  async getThread(user: Identity, quackId: string): Promise<Quack> {
+    const quack = await this.quackRepository.getThread(user.id, quackId);
+    if (!quack) throw new NotFoundException('Quack not found');
+    return quack;
+  }
+
+  async createReply(
+    user: Identity,
+    parentId: string,
+    replyData: { text: string; mood?: Mood },
+  ): Promise<Quack> {
+    const parent = await this.quackRepository.findQuackById(parentId);
+    if (!parent) throw new NotFoundException('Quack not found');
+    // Threads are one level deep (docs/adr/0001, story-replies.md).
+    if (parent.parentId) {
+      throw new BadRequestException("You can't reply to a reply");
+    }
+    // A deleted quack only stays so its replies stay readable.
+    if (parent.deletedAt) {
+      throw new ConflictException('This quack was deleted');
+    }
+    return this.quackRepository.createQuack({
+      text: replyData.text,
+      mood: replyData.mood,
+      parentId,
+      userId: user.id,
+    });
+  }
+
   async deleteQuack(user: Identity, quackId: string): Promise<void> {
     const quack = await this.quackRepository.findQuackById(quackId);
-    if (!quack) throw new NotFoundException('Quack not found');
+    // A tombstone counts as already deleted.
+    if (!quack || quack.deletedAt)
+      throw new NotFoundException('Quack not found');
     // The permission check lives here, not in the UI: hiding the button is
     // only a convenience. The author or an admin may delete.
     const isOwner = quack.userId === user.id;

@@ -28,6 +28,9 @@ const quackWith = (p: Poll): Quack => ({
   userId: "u1",
   createdAt: new Date("2026-01-01T12:00:00Z"),
   user: { id: "u1", name: "Duck", username: "duck" },
+  parentId: null,
+  replyCount: 0,
+  isDeleted: false,
   poll: p,
 })
 

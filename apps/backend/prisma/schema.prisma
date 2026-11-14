@@ -33,16 +33,24 @@ enum Mood {
 
 model Quack {
   id        String   @id @default(cuid())
-  text      String   @db.Text
+  // null on a tombstone: the content is really gone (docs/adr/0001)
+  text      String?  @db.Text
   mood      Mood?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
+  // set on a reply. Restrict: a quack that has replies can never be hard-deleted
+  parent    Quack?   @relation("QuackReplies", fields: [parentId], references: [id], onDelete: Restrict)
+  parentId  String?
+  replies   Quack[]  @relation("QuackReplies")
+  // set only on a top-level quack that still has replies (a tombstone)
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   poll      Poll?
 
   @@index([userId])
+  @@index([parentId])
   @@map("quack")
 }
 

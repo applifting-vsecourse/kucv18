@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { Loader2, RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -16,6 +17,7 @@ type QuackListProps = {
   canDelete?: (quack: Quack) => boolean
   // Set when the list is filtered to the current user's quacks.
   isMineOnly?: boolean
+  renderThreadLink?: (quackId: string, label: string) => ReactNode
   onWriteFirst?: () => void
   onReload?: () => void
 }
@@ -27,6 +29,7 @@ export function QuackList({
   search,
   canDelete,
   isMineOnly,
+  renderThreadLink,
   onWriteFirst,
   onReload,
 }: QuackListProps) {
@@ -86,6 +89,7 @@ export function QuackList({
           key={quack.id}
           quack={quack}
           canDelete={canDelete?.(quack) ?? false}
+          renderThreadLink={renderThreadLink}
         />
       ))}
     </div>

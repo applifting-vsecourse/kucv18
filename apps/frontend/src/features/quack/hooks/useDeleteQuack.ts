@@ -9,8 +9,9 @@ export function useDeleteQuack() {
   return useMutation({
     mutationFn: deleteQuack,
     onSuccess: async () => {
-      // Refresh the lists so the deleted quack disappears.
-      await queryClient.invalidateQueries({ queryKey: quackKeys.lists() })
+      // Refresh the lists and threads: the quack is gone or became a tombstone,
+      // and a reply count somewhere may have changed.
+      await queryClient.invalidateQueries({ queryKey: quackKeys.all() })
     },
   })
 }
